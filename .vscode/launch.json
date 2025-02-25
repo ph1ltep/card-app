@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Debug Cardstore (Backend)",
+        "program": "${workspaceFolder}/cardstore/index.js",
+        "cwd": "${workspaceFolder}/cardstore",
+        "skipFiles": ["<node_internals>/**"]
+      },
+      {
+        "type": "chrome",
+        "request": "launch",
+        "name": "Debug Cardbrowser (Frontend)",
+        "url": "http://localhost:3000",
+        "webRoot": "${workspaceFolder}/cardbrowser/src"
+      }
+    ],
+    "compounds": [
+      {
+        "name": "Debug Full Stack",
+        "configurations": ["Debug Cardstore (Backend)", "Debug Cardbrowser (Frontend)"]
+      }
+    ]
+  }

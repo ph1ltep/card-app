@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "/config/workspace/card-app"
+		},
+		{
+			"path": "/config/workspace/card-app/cardbrowser"
+		},
+		{
+			"path": "cardstore"
+		}
+	],
+	"settings": {}
+}
