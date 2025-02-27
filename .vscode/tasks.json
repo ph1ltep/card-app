@@ -6,14 +6,16 @@
         "type": "npm",
         "script": "dev",
         "path": "cardstore/",
-        "group": "build"
+        "group": "build",
+        "problemMatcher": []
       },
       {
         "label": "Start Frontend",
         "type": "npm",
         "script": "start",
         "path": "cardbrowser/",
-        "group": "build"
+        "group": "build",
+        "problemMatcher": []
       },
       {
         "label": "Start All",

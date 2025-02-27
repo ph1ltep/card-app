@@ -6,7 +6,9 @@ const Search = () => {
 
   const handleSearch = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/search?query=${encodeURIComponent(query)}`);
+      const response = await fetch(`/proxy/5000/search?query=${encodeURIComponent(query)}`, {
+        credentials: 'include',
+      });
       const data = await response.json();
       setResults(data);
     } catch (err) {
@@ -30,9 +32,11 @@ const Search = () => {
       <ul className="mt-2">
         {results.map((card) => (
           <li key={card._id} className="border p-2 mt-2">
-            <strong>{card.name}</strong> - {card.email} - {card.company}
+            <strong>{card.name || 'N/A'}</strong> - {card.email || 'N/A'} - {card.company || 'N/A'}
             <br />
-            <img src={`http://localhost:5000/${card.imagePath}`} alt="Card" className="max-w-[100px] mt-1" />
+            <span>{card.phone || 'N/A'} - {card.address || 'N/A'}</span>
+            <br />
+            <img src={`/proxy/5000/${card.imagePath}`} alt="Card" className="max-w-[100px] mt-1" />
           </li>
         ))}
       </ul>

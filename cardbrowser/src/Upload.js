@@ -1,88 +1,80 @@
-import React, { useState } from 'react';
-import Tesseract from 'tesseract.js';
+import React, { useState, useEffect } from 'react';
+import UploadStep1 from './UploadStep1';
+import UploadStep2 from './UploadStep2';
+import UploadStep3 from './UploadStep3';
+import UploadStep4 from './UploadStep4';
 
 const Upload = () => {
-  const [preview, setPreview] = useState(null);
+  const [step, setStep] = useState(1);
+  const [originalImage, setOriginalImage] = useState(null);
+  const [boundingBox, setBoundingBox] = useState(null); // Reintroduced for preview
+  const [croppedImage, setCroppedImage] = useState(null);
+  const [croppedBlob, setCroppedBlob] = useState(null);
+  const [detectedFields, setDetectedFields] = useState({
+    name: '',
+    title: '',
+    email: '',
+    phone: '',
+    company: '',
+    address: '',
+    website: '',
+  });
   const [status, setStatus] = useState('');
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (!window.cv) {
-        setStatus('OpenCV.js not loaded yet!');
-        return;
-      }
-      const url = URL.createObjectURL(file);
-      setPreview(url);
-      setStatus('Processing...');
-
-      const img = new Image();
-      img.src = url;
-      img.onload = async () => {
-        // Crop with OpenCV
-        const mat = window.cv.imread(img);
-        const gray = new window.cv.Mat();
-        window.cv.cvtColor(mat, gray, window.cv.COLOR_RGBA2GRAY);
-        window.cv.threshold(gray, gray, 120, 255, window.cv.THRESH_BINARY);
-
-        const contours = new window.cv.MatVector();
-        const hierarchy = new window.cv.Mat();
-        window.cv.findContours(gray, contours, hierarchy, window.cv.RETR_EXTERNAL, window.cv.CHAIN_APPROX_SIMPLE);
-
-        let maxArea = 0;
-        let maxContour = null;
-        for (let i = 0; i < contours.size(); i++) {
-          const area = window.cv.contourArea(contours.get(i));
-          if (area > maxArea) {
-            maxArea = area;
-            maxContour = contours.get(i);
-          }
+  useEffect(() => {
+    if (!window.cv) {
+      setStatus('Loading OpenCV.js...');
+      const checkOpenCV = setInterval(() => {
+        if (window.cv) {
+          setStatus('');
+          clearInterval(checkOpenCV);
         }
-
-        if (maxContour) {
-          const rect = window.cv.boundingRect(maxContour);
-          const cropped = mat.roi(rect);
-          window.cv.imshow('canvasOutput', cropped);
-
-          // OCR with Tesseract
-          const worker = await Tesseract.createWorker('eng');
-          const { data: { text } } = await worker.recognize(cropped.data);
-          await worker.terminate();
-
-          // Upload to backend
-          const formData = new FormData();
-          formData.append('image', file);
-          formData.append('text', text);
-
-          try {
-            const response = await fetch('http://localhost:5000/upload', {
-              method: 'POST',
-              body: formData,
-            });
-            const result = await response.json();
-            setStatus(`Uploaded: ${result.message}`);
-          } catch (err) {
-            setStatus(`Error: ${err.message}`);
-          }
-
-          cropped.delete();
-        }
-        mat.delete();
-        gray.delete();
-        contours.delete();
-        hierarchy.delete();
-        URL.revokeObjectURL(url);
-      };
+      }, 100);
     }
+  }, []);
+
+  const resetState = () => {
+    setStep(1);
+    setOriginalImage(null);
+    setBoundingBox(null);
+    setCroppedImage(null);
+    setCroppedBlob(null);
+    setDetectedFields({ name: '', email: '', phone: '', company: '', address: '' });
+    setStatus('');
   };
 
   return (
-    <div className="mt-4">
-      <h2 className="text-xl font-bold">Upload Business Card</h2>
-      <input type="file" accept="image/*" onChange={handleFileChange} className="mt-2" />
-      {preview && <img src={preview} alt="Preview" className="max-w-xs mt-2" />}
-      <canvas id="canvasOutput" className="max-w-xs mt-2"></canvas>
-      <p className="mt-2">{status || 'Ready'}</p>
+    <div className="mt-6 p-6 bg-white rounded-lg shadow-lg max-w-2xl mx-auto">
+      <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+        {step === 1 ? 'New Card' : step === 2 ? 'Adjust Card Edges' : step === 3 ? 'Edit Details' : 'Saving'}
+      </h2>
+
+      {step === 1 && <UploadStep1 setOriginalImage={setOriginalImage} setStep={setStep} setStatus={setStatus} />}
+      {step === 2 && originalImage && (
+        <UploadStep2
+          originalImage={originalImage}
+          boundingBox={boundingBox}
+          setBoundingBox={setBoundingBox}
+          setCroppedImage={setCroppedImage}
+          setCroppedBlob={setCroppedBlob}
+          setStep={setStep}
+          setStatus={setStatus}
+        />
+      )}
+      {step === 3 && croppedImage && (
+        <UploadStep3
+          croppedImage={croppedImage}
+          detectedFields={detectedFields}
+          setDetectedFields={setDetectedFields}
+          croppedBlob={croppedBlob}
+          setStep={setStep}
+          setStatus={setStatus}
+          resetState={resetState}
+        />
+      )}
+      {step === 4 && <UploadStep4 status={status} resetState={resetState} />}
+
+      {status && step !== 4 && <p className="mt-4 text-sm text-gray-600">{status}</p>}
     </div>
   );
 };
