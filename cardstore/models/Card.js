@@ -8,7 +8,9 @@ const cardSchema = new mongoose.Schema({
   phone: String,
   address: String,
   website: String,
-  imagePath: String,
+  imagePath: String, // Path to the saved image
+  imageId: { type: String, default: () => nanoid(10) }, // Unique 10-character ID
+  savedAt: { type: Date, default: Date.now }, // Timestamp of save
 });
 
 module.exports = mongoose.model('Card', cardSchema);

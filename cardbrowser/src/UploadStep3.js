@@ -1,106 +1,27 @@
 import React, { useEffect } from 'react';
-import Tesseract from 'tesseract.js';
+import EditCardModal from './components/EditCardModal'; // Adjust path as needed
 
 const UploadStep3 = ({
   croppedImage,
-  detectedFields,
-  setDetectedFields,
   croppedBlob,
   setStep,
   setStatus,
   resetState,
 }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   useEffect(() => {
     if (croppedBlob) {
-      const processImage = async () => {
-        setStatus('Preprocessing image...');
-        try {
-          console.log('Cropped Blob:', croppedBlob); // Debug croppedBlob
-          // Step 1: Preprocess image with OpenCV.js (simplified)
-          const img = new Image();
-          img.src = URL.createObjectURL(croppedBlob);
-          await new Promise((resolve) => (img.onload = resolve));
-
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-
-          // Use OpenCV.js for basic preprocessing
-          if (window.cv) {
-            const mat = window.cv.imread(canvas);
-            const gray = new window.cv.Mat();
-            window.cv.cvtColor(mat, gray, window.cv.COLOR_RGBA2GRAY);
-            window.cv.threshold(gray, gray, 128, 255, window.cv.THRESH_BINARY); // Basic binarization
-            window.cv.imshow(canvas, gray);
-
-            mat.delete();
-            gray.delete();
-          }
-
-          // Convert processed canvas to Blob for Tesseract
-          canvas.toBlob(async (processedBlob) => {
-            setStatus('Processing OCR...');
-            // Initialize Tesseract worker with English
-            const worker = await Tesseract.createWorker('eng', 1, {
-              logger: (m) => console.log('Tesseract:', m), // Detailed logging
-            });
-
-            // Set parameters to enable structural data
-            await worker.setParameters({
-              tessedit_pageseg_mode: Tesseract.PSM.AUTO, // Flexible layout
-              tessedit_create_blocks: true, // Enable block-level output
-              tessedit_create_lines: true, // Enable line-level output
-              tessedit_char_whitelist: '', // Remove whitelist to allow all characters
-            });
-
-            // Perform OCR on the processed image
-            const { data } = await worker.recognize(processedBlob);
-            await worker.terminate(); // Clean up worker
-            console.log('Tesseract OCR Result:', JSON.stringify(data, null, 2)); // Debug full result
-
-            if (!data.text) {
-              throw new Error('No text detected from OCR');
-            }
-
-            setStatus('Processing text...');
-            // Send raw Tesseract data to backend for parsing
-            const response = await fetch('/proxy/5000/process', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ data: data }), // Send full Tesseract data
-              credentials: 'include',
-            });
-            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-            const fields = await response.json();
-            setDetectedFields(fields);
-            setStatus('Text detected - Ready to edit');
-          }, 'image/png');
-        } catch (err) {
-          console.error('Processing error:', err);
-          setStatus(`Error: ${err.message}`);
-        }
-      };
-      processImage();
+      setIsModalOpen(true); // Open modal for initial upload
     }
-  }, [croppedBlob, setDetectedFields, setStatus]);
+  }, [croppedBlob]);
 
-  const handleFieldChange = (field, value) => {
-    setDetectedFields(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSave = async () => {
-    setStatus('Uploading...');
-    if (!croppedBlob) {
-      setStatus('No cropped image available');
-      return;
-    }
+  const handleSave = async (fields) => {
     const formData = new FormData();
     formData.append('image', croppedBlob, 'cropped.png');
-    formData.append('fields', JSON.stringify(detectedFields));
+    formData.append('fields', JSON.stringify(fields));
     try {
-      const response = await fetch('/proxy/5000/upload', {
+      const response = await fetch('https://code-server.fthome.org/proxy/5000/upload', {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -110,35 +31,37 @@ const UploadStep3 = ({
       setStatus(`Saved: ${result.message}`);
       setTimeout(() => resetState(), 1500);
     } catch (err) {
-      console.error('Save error:', err);
-      setStatus(`Error: ${err.message}`);
+      throw err;
     }
+  };
+
+  const handleRemove = () => {
+    // No removal needed for initial upload; close modal instead
+    setIsModalOpen(false);
+    resetState();
+  };
+
+  const handleReScan = async () => {
+    // Re-scanning not applicable for initial upload; handled by modal
+  };
+
+  const handleClose = () => {
+    setIsModalOpen(false);
+    resetState();
   };
 
   return (
     <>
-      <img src={croppedImage} alt="Cropped" className="max-w-full h-auto rounded-md mt-2 border" />
-      <div className="mt-4">
-        <h3 className="text-lg font-medium text-gray-700">Detected Fields</h3>
-        {['name', 'email', 'phone', 'company', 'address', 'title', 'website'].map(field => (
-          <div key={field} className="mt-2">
-            <label className="block text-sm font-medium text-gray-600 capitalize">{field}</label>
-            <input
-              type="text"
-              value={detectedFields[field] || ''}
-              onChange={(e) => handleFieldChange(field, e.target.value)}
-              className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder={`Enter ${field}`}
-            />
-          </div>
-        ))}
-        <button
-          onClick={handleSave}
-          className="mt-4 w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors"
-        >
-          Save
-        </button>
-      </div>
+      {isModalOpen && (
+        <EditCardModal
+          card={null} // No card data for initial upload
+          onSave={handleSave}
+          onRemove={handleRemove}
+          onReScan={handleReScan}
+          onClose={handleClose}
+          isOpen={isModalOpen}
+        />
+      )}
     </>
   );
 };
