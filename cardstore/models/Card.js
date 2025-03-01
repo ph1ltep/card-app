@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
 const cardSchema = new mongoose.Schema({
-  name: String,
+  name: { type: String, index: true },
+  title: { type: String, index: true },
+  company: { type: String, index: true },
   email: String,
   phone: String,
-  company: String,
   address: String,
-  title: String,
   website: String,
   imagePath: String,
 });
