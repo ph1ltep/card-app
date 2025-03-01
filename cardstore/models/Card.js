@@ -6,8 +6,9 @@ const cardSchema = new mongoose.Schema({
   phone: String,
   company: String,
   address: String,
-  imagePath: String, // Path to stored image
-  createdAt: { type: Date, default: Date.now },
+  title: String,
+  website: String,
+  imagePath: String,
 });
 
 module.exports = mongoose.model('Card', cardSchema);

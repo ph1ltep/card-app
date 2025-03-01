@@ -27,7 +27,7 @@ const UploadStep3 = ({
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
 
-          // Use OpenCV.js for basic preprocessing (less aggressive)
+          // Use OpenCV.js for basic preprocessing
           if (window.cv) {
             const mat = window.cv.imread(canvas);
             const gray = new window.cv.Mat();
@@ -42,35 +42,34 @@ const UploadStep3 = ({
           // Convert processed canvas to Blob for Tesseract
           canvas.toBlob(async (processedBlob) => {
             setStatus('Processing OCR...');
-            // Initialize Tesseract worker with English + Simplified Chinese
-            const worker = await Tesseract.createWorker('eng+chi_sim', 1, {
+            // Initialize Tesseract worker with English
+            const worker = await Tesseract.createWorker('eng', 1, {
               logger: (m) => console.log('Tesseract:', m), // Detailed logging
             });
 
-            // Set parameters for better detection, relaxed whitelist
+            // Set parameters to enable structural data
             await worker.setParameters({
-              tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK, // Try SINGLE_BLOCK for structured text
+              tessedit_pageseg_mode: Tesseract.PSM.AUTO, // Flexible layout
+              tessedit_create_blocks: true, // Enable block-level output
+              tessedit_create_lines: true, // Enable line-level output
               tessedit_char_whitelist: '', // Remove whitelist to allow all characters
             });
 
             // Perform OCR on the processed image
             const { data } = await worker.recognize(processedBlob);
             await worker.terminate(); // Clean up worker
-            console.log('Tesseract OCR Result:', data); // Debug full result
-            const fullText = data.text || '';
+            console.log('Tesseract OCR Result:', JSON.stringify(data, null, 2)); // Debug full result
 
-            if (!fullText) {
+            if (!data.text) {
               throw new Error('No text detected from OCR');
             }
 
-            console.log('OCR Text sent to backend:', fullText);
-
             setStatus('Processing text...');
-            // Send text to backend for parsing
+            // Send raw Tesseract data to backend for parsing
             const response = await fetch('/proxy/5000/process', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ text: fullText }),
+              body: JSON.stringify({ data: data }), // Send full Tesseract data
               credentials: 'include',
             });
             if (!response.ok) throw new Error(`HTTP error ${response.status}`);
