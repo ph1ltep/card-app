@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import CaptureCardModal from './components/CaptureCardModal'; // Should be correct
-import AddCardModal from './components/AddCardModal'; // Should be correct
+import CaptureCardModal from './components/CaptureCardModal'; // Adjust path as needed
+import AddCardModal from './components/AddCardModal'; // Adjust path as needed
 
 const Upload = () => {
   const [step, setStep] = useState(1);

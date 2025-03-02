@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Tesseract from 'tesseract.js';
-import Modal from './Modal'; // Adjust path as needed (should point to src/components/Modal.js)
+import Modal from './Modal'; // Adjust path as needed
 
 const AddCardModal = ({
   isOpen,
-  croppedBlob, // Blob of the cropped image for new card creation
-  croppedImage, // URL of the cropped image
-  onClose, // Callback to close and reset (replaces onCancel)
+  croppedBlob, // Blob of the cropped, transformed, 21:12 business card
+  croppedImage, // URL of the cropped, transformed, 21:12 business card
+  onClose, // Callback to close and reset
   onReset, // Callback to reset state to Step 1
 }) => {
   const [fields, setFields] = useState({
