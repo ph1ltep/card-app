@@ -5,11 +5,11 @@ const Modal = ({
   onClose,
   children,
   title = '',
-  imageSrc = null, // Prop for image URL
-  fields = {}, // Prop for editable fields
-  onFieldChange = () => {}, // Callback for field changes
-  buttons = [], // Array of button objects { text, onClick, className }
-  status = '', // Status message
+  imageSrc = null,
+  fields = {},
+  onFieldChange = () => {},
+  buttons = [],
+  status = '',
   className = '',
   overlayClassName = '',
   contentClassName = '',
@@ -59,15 +59,22 @@ const Modal = ({
         )}
         {buttons.length > 0 && (
           <div className="mt-4 flex justify-end gap-2">
-            {buttons.map((button, index) => (
-              <button
-                key={index}
-                onClick={button.onClick}
-                className={`px-4 py-2 bg-${button.className || 'blue-600'} text-white rounded-lg hover:bg-${button.className.replace('-600', '-700') || 'blue-700'} transition-all duration-200 shadow-sm`}
-              >
-                {button.text}
-              </button>
-            ))}
+            {buttons.map((button, index) => {
+              // Construct background and hover classes based on className prop
+              const baseColor = button.className || 'blue-600'; // Default to blue-600 if no className
+              const bgColor = `bg-${baseColor}`;
+              const hoverColor = `hover:bg-${baseColor.replace('-600', '-700')}`;
+              
+              return (
+                <button
+                  key={index}
+                  onClick={button.onClick}
+                  className={`${bgColor} ${hoverColor} text-white rounded-lg px-4 py-2 transition-all duration-200 shadow-sm`}
+                >
+                  {button.text}
+                </button>
+              );
+            })}
           </div>
         )}
         {status && <p className="mt-2 text-xs text-gray-600">{status}</p>}

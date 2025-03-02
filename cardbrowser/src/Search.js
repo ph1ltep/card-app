@@ -73,6 +73,9 @@ const Search = () => {
     setSelectedCard(null);
   };
 
+  // Get PUBLIC_URL dynamically, falling back to '/' for development
+  const getPublicUrl = () => process.env.PUBLIC_URL || '/';
+
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg mb-6">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Search Cards</h2>
@@ -105,13 +108,16 @@ const Search = () => {
                     className="w-36 h-auto object-cover rounded-md md:w-48 md:h-auto lg:w-60 lg:h-auto"
                     onError={(e) => {
                       console.error(`Failed to load image: ${e.target.src}`);
-                      e.target.style.display = 'none'; // Hide the image on error, preventing loops
+                      e.target.src = `${getPublicUrl()}/placeholder_card.png`; // Use dynamic PUBLIC_URL
+                      e.target.style.display = 'block'; // Ensure visibility
                     }}
                   />
                 ) : (
-                  <div className="w-36 h-20 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 md:w-48 md:h-27 lg:w-60 lg:h-34">
-                    No Image
-                  </div>
+                  <img
+                    src={`${getPublicUrl()}/placeholder_card.png`} // Use dynamic PUBLIC_URL
+                    alt="Placeholder card thumbnail"
+                    className="w-36 h-auto object-cover rounded-md md:w-48 md:h-auto lg:w-60 lg:h-auto"
+                  />
                 )}
               </div>
               <div className="flex-1 grid grid-cols-2 gap-2 text-sm">
