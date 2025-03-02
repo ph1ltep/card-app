@@ -1,25 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import UploadStep1 from './UploadStep1';
-import UploadStep2 from './UploadStep2';
-import UploadStep3 from './UploadStep3';
-import UploadStep4 from './UploadStep4';
+import CaptureCardModal from './components/CaptureCardModal'; // Should be correct
+import AddCardModal from './components/AddCardModal'; // Should be correct
 
 const Upload = () => {
   const [step, setStep] = useState(1);
-  const [originalImage, setOriginalImage] = useState(null);
-  const [boundingBox, setBoundingBox] = useState(null); // Reintroduced for preview
-  const [croppedImage, setCroppedImage] = useState(null);
   const [croppedBlob, setCroppedBlob] = useState(null);
-  const [detectedFields, setDetectedFields] = useState({
-    name: '',
-    title: '',
-    email: '',
-    phone: '',
-    company: '',
-    address: '',
-    website: '',
-  });
+  const [croppedImage, setCroppedImage] = useState(null);
   const [status, setStatus] = useState('');
+  const [isCaptureModalOpen, setIsCaptureModalOpen] = useState(false);
+  const [isAddCardModalOpen, setIsAddCardModalOpen] = useState(false);
+  const [captureImage, setCaptureImage] = useState(null);
 
   useEffect(() => {
     if (!window.cv) {
@@ -30,51 +20,105 @@ const Upload = () => {
           clearInterval(checkOpenCV);
         }
       }, 100);
+      return () => clearInterval(checkOpenCV);
     }
   }, []);
 
-  const resetState = () => {
+  const handleImageSelect = (file) => {
+    if (!file || !window.cv) {
+      setStatus('OpenCV.js not loaded yet!');
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setCaptureImage(url);
+    setIsCaptureModalOpen(true);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleImageSelect(e.dataTransfer.files[0]);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleCaptureNext = (croppedBlob, croppedImage) => {
+    setCroppedBlob(croppedBlob);
+    setCroppedImage(croppedImage);
+    setIsCaptureModalOpen(false);
+    setIsAddCardModalOpen(true);
+    setCaptureImage(null);
+  };
+
+  const handleCaptureCancel = () => {
+    setIsCaptureModalOpen(false);
+    setCaptureImage(null);
+  };
+
+  const handleAddCardReset = () => {
     setStep(1);
-    setOriginalImage(null);
-    setBoundingBox(null);
-    setCroppedImage(null);
     setCroppedBlob(null);
-    setDetectedFields({ name: '', email: '', phone: '', company: '', address: '' });
+    setCroppedImage(null);
     setStatus('');
+    setIsCaptureModalOpen(false);
+    setIsAddCardModalOpen(false);
+    setCaptureImage(null);
   };
 
   return (
     <div className="mt-6 p-6 bg-white rounded-lg shadow-lg max-w-2xl mx-auto">
       <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-        {step === 1 ? 'New Card' : step === 2 ? 'Adjust Card Edges' : step === 3 ? 'Edit Details' : 'Saving'}
+        {step === 1 ? 'New Card' : 'Saving'}
       </h2>
 
-      {step === 1 && <UploadStep1 setOriginalImage={setOriginalImage} setStep={setStep} setStatus={setStatus} />}
-      {step === 2 && originalImage && (
-        <UploadStep2
-          originalImage={originalImage}
-          boundingBox={boundingBox}
-          setBoundingBox={setBoundingBox}
-          setCroppedImage={setCroppedImage}
-          setCroppedBlob={setCroppedBlob}
-          setStep={setStep}
-          setStatus={setStatus}
-        />
+      {step === 1 && (
+        <div
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          className="border-2 border-dashed border-gray-300 p-4 rounded-md text-center hover:border-blue-500 transition-colors"
+        >
+          <button
+            onClick={() => document.getElementById('fileInput').click()}
+            className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            New Card
+          </button>
+          <input
+            id="fileInput"
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleImageSelect(e.target.files[0])}
+            className="hidden"
+          />
+          <p className="text-gray-500 mt-2">or drag and drop here</p>
+        </div>
       )}
-      {step === 3 && croppedImage && (
-        <UploadStep3
-          croppedImage={croppedImage}
-          detectedFields={detectedFields}
-          setDetectedFields={setDetectedFields}
-          croppedBlob={croppedBlob}
-          setStep={setStep}
-          setStatus={setStatus}
-          resetState={resetState}
-        />
-      )}
-      {step === 4 && <UploadStep4 status={status} resetState={resetState} />}
+      {step === 2 && <div>Saving...</div>}
 
-      {status && step !== 4 && <p className="mt-4 text-sm text-gray-600">{status}</p>}
+      <CaptureCardModal
+        isOpen={isCaptureModalOpen}
+        onNext={handleCaptureNext}
+        onCancel={handleCaptureCancel}
+        originalImage={captureImage}
+      />
+      <AddCardModal
+        isOpen={isAddCardModalOpen}
+        croppedBlob={croppedBlob}
+        croppedImage={croppedImage}
+        onClose={handleCaptureCancel}
+        onReset={handleAddCardReset}
+      />
+
+      {status && step !== 2 && <p className="mt-4 text-sm text-gray-600">{status}</p>}
     </div>
   );
 };

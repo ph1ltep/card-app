@@ -1,31 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import Tesseract from 'tesseract.js';
-import Modal from './Modal'; // Adjust path as needed
+import Modal from './Modal'; // Adjust path as needed (should point to src/components/Modal.js)
 
 const AddCardModal = ({
+  isOpen,
   croppedBlob, // Blob of the cropped image for new card creation
-  croppedImage, // URL of the cropped image (optional)
-  onSave, // Callback for saving the new card
-  onCancel, // Callback to cancel and close the modal
-  isOpen, // Flag to control modal visibility
+  croppedImage, // URL of the cropped image
+  onClose, // Callback to close and reset (replaces onCancel)
+  onReset, // Callback to reset state to Step 1
 }) => {
   const [fields, setFields] = useState({
     name: '', email: '', phone: '', company: '', address: '', title: '', website: ''
   });
   const [status, setStatus] = useState('Processing image...');
   const [imageUrl, setImageUrl] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      // Use croppedBlob to set image URL and perform frontend OCR, then backend NLP
+      setImageUrl(croppedImage || null);
       if (croppedBlob) {
-        const url = URL.createObjectURL(croppedBlob);
-        setImageUrl(url);
-        performOCR(croppedBlob); // Process Blob via Tesseract in frontend
-        return () => URL.revokeObjectURL(url); // Clean up to prevent memory leaks
-      } else if (croppedImage) {
-        setImageUrl(croppedImage);
-        performOCRFromURL(croppedImage); // Process URL via Tesseract in frontend
+        performOCR(croppedBlob);
+      } else {
+        setStatus('Image not loaded or invalid');
       }
     }
   }, [isOpen, croppedBlob, croppedImage]);
@@ -33,14 +30,14 @@ const AddCardModal = ({
   const performOCR = async (blob) => {
     try {
       const worker = await Tesseract.createWorker('eng', 1, {
-        logger: (m) => console.log('Tesseract (AddCard):', m), // Log Tesseract progress
+        logger: (m) => console.log('Tesseract (AddCard):', m),
       });
 
       await worker.setParameters({
         tessedit_pageseg_mode: Tesseract.PSM.AUTO,
         tessedit_create_blocks: true,
         tessedit_create_lines: true,
-        tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@.-_/# +', // Matches parser expectations
+        tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@.-_/# +',
       });
 
       const { data } = await worker.recognize(blob);
@@ -50,22 +47,9 @@ const AddCardModal = ({
         throw new Error('No text detected from OCR');
       }
 
-      console.log('OCR Result (AddCard):', data.text); // Log OCR result
-      await processNLP(data.text); // Send to backend for NLP parsing
+      console.log('OCR Result (AddCard):', data.text);
+      await processNLP(data.text);
     } catch (err) {
-      console.error('OCR error (AddCard):', err);
-      setStatus(`Error processing image: ${err.message}`);
-    }
-  };
-
-  const performOCRFromURL = async (imageUrl) => {
-    try {
-      const response = await fetch(imageUrl);
-      if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
-      const blob = await response.blob();
-      await performOCR(blob); // Reuse the same OCR logic
-    } catch (err) {
-      console.error('OCR error from URL (AddCard):', err);
       setStatus(`Error processing image: ${err.message}`);
     }
   };
@@ -78,13 +62,12 @@ const AddCardModal = ({
         body: JSON.stringify({ data: { text } }),
         credentials: 'include',
       });
-      if (!response.ok) throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
       const newFields = await response.json();
-      console.log('Received fields from /process:', newFields); // Debug response
+      console.log('Received fields from /process:', newFields);
       setFields(newFields);
       setStatus('Ready to edit');
     } catch (err) {
-      console.error('NLP error (AddCard):', err);
       setStatus(`Error processing text: ${err.message}`);
     }
   };
@@ -94,6 +77,7 @@ const AddCardModal = ({
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     setStatus('Saving...');
     try {
       const formData = new FormData();
@@ -107,16 +91,19 @@ const AddCardModal = ({
       if (!response.ok) throw new Error(`HTTP error ${response.status}`);
       const result = await response.json();
       setStatus(`Saved: ${result.message}`);
-      setTimeout(() => onCancel(), 1500); // Close modal after saving
+      setTimeout(() => {
+        onReset(); // Reset to Step 1 after success
+        onClose(); // Close the modal
+      }, 1500);
     } catch (err) {
-      console.error('Save error:', err);
       setStatus(`Error saving card: ${err.message}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
-    onCancel();
-    // Clean up any object URL to prevent memory leaks
+    onClose();
     if (imageUrl && imageUrl.startsWith('blob:')) {
       URL.revokeObjectURL(imageUrl);
     }
@@ -131,7 +118,7 @@ const AddCardModal = ({
       fields={fields}
       onFieldChange={handleFieldChange}
       buttons={[
-        { text: 'Save', onClick: handleSave, className: 'blue-600' },
+        { text: 'Save', onClick: handleSave, className: 'blue-600', disabled: isSaving },
         { text: 'Cancel', onClick: handleCancel, className: 'gray-600' },
       ]}
       status={status}
