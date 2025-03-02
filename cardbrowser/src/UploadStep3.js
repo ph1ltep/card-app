@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import EditCardModal from './components/EditCardModal'; // Adjust path as needed
+import React, { useEffect, useState } from 'react'; // Confirmed React, useEffect, useState are imported
+import AddCardModal from './components/AddCardModal'; // Adjust path as needed
 
 const UploadStep3 = ({
   croppedImage,
@@ -29,23 +29,16 @@ const UploadStep3 = ({
       if (!response.ok) throw new Error(`HTTP error ${response.status}`);
       const result = await response.json();
       setStatus(`Saved: ${result.message}`);
-      setTimeout(() => resetState(), 1500);
+      setTimeout(() => {
+        resetState();
+        setIsModalOpen(false); // Close modal after saving
+      }, 1500);
     } catch (err) {
       throw err;
     }
   };
 
-  const handleRemove = () => {
-    // No removal needed for initial upload; close modal instead
-    setIsModalOpen(false);
-    resetState();
-  };
-
-  const handleReScan = async () => {
-    // Re-scanning not applicable for initial upload; handled by modal
-  };
-
-  const handleClose = () => {
+  const handleCancel = () => {
     setIsModalOpen(false);
     resetState();
   };
@@ -53,12 +46,11 @@ const UploadStep3 = ({
   return (
     <>
       {isModalOpen && (
-        <EditCardModal
-          card={null} // No card data for initial upload
+        <AddCardModal
+          croppedBlob={croppedBlob}
+          croppedImage={croppedImage}
           onSave={handleSave}
-          onRemove={handleRemove}
-          onReScan={handleReScan}
-          onClose={handleClose}
+          onCancel={handleCancel}
           isOpen={isModalOpen}
         />
       )}

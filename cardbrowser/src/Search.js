@@ -82,12 +82,12 @@ const Search = () => {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name, title, or company (use * or % for wildcards)"
-          className="flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
         />
         <button
           type="submit"
           onClick={handleSearch}
-          className="px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm"
         >
           Search
         </button>
@@ -134,7 +134,7 @@ const Search = () => {
           card={selectedCard}
           onSave={handleSave}
           onRemove={handleRemove}
-          onReScan={() => {}} // Placeholder, will be implemented in backend
+          onReScan={() => {}} // Implemented in EditCardModal
           onClose={handleClose}
           isOpen={isModalOpen}
         />
